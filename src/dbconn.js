@@ -2,11 +2,20 @@ import Sequelize from 'sequelize';
 import logger from './logger';
 
 // sqlite3 database
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite3',
+// const sequelize = new Sequelize({
+//     dialect: 'sqlite',
+//     storage: './database.sqlite3',
+//     logging: false,
+//     sync: { force: false } // do not force sync, use migration instead
+// });
+
+const sequelize = new Sequelize('stock_man', 'root', null, {
+    host: 'localhost',
     logging: false,
-    sync: { force: false } // do not force sync, use migration instead
+    dialect: 'mariadb',
+    dialectOptions: {
+        timezone: 'Etc/GMT+7'
+    }
 });
 
 // check database connection
