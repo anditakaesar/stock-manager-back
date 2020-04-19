@@ -1,108 +1,109 @@
-import { Router } from 'express';
-import Umzug from 'umzug';
-import sequelize from '../dbconn';
-import { genError } from '../utils';
-import Sequelize from 'sequelize';
+import { Router } from 'express'
+import Umzug from 'umzug'
+import Sequelize from 'sequelize'
+import { sequelize } from '../../models/index'
+import { genError } from '../utils'
 
 // /migration
 
-const router = Router();
-const umzug = new Umzug({
-    storage: 'sequelize',
-    storageOptions: {
-        sequelize: sequelize
-    },
+const router = Router()
+const migrationConfig = {
+  storage: 'sequelize',
+  storageOptions: {
+    sequelize,
+  },
 
-    migrations: {
-        params: [
-            sequelize.getQueryInterface(),
-            Sequelize
-        ],
-        path: './migrations'
-    },
+  migrations: {
+    params: [
+      sequelize.getQueryInterface(),
+      Sequelize,
+    ],
+    path: './migrations',
+  },
+}
+
+const umzug = new Umzug(migrationConfig)
+
+router.use((req, res, next) => {
+  res.migrations = []
+  next()
 })
 
-router.get('/', GetExecutedMigration, GetPendingMigration, (req, res, next) => {
-    res.status(200).json({
-        message: `all migrations`,
-        migrations: res.migrations
-    });
-});
+function GetExecutedMigration(req, res, next) {
+  process.nextTick(() => {
+    umzug.executed()
+      .then((mgtd) => {
+        mgtd.forEach((m) => res.migrations.push({ name: m.file, type: 'migration', status: 'migrated' }))
+
+        next()
+      })
+      .catch((err) => {
+        next(genError('Error get executed migrations', err.message))
+      })
+  })
+}
+
+function GetPendingMigration(req, res, next) {
+  process.nextTick(() => {
+    umzug.pending()
+      .then((pndg) => {
+        pndg.forEach((m) => res.migrations.push({ name: m.file, type: 'migration', status: 'pending' }))
+
+        next()
+      })
+      .catch((err) => {
+        next(genError('Error get pending migrations', err.message))
+      })
+  })
+}
+
+router.get('/', GetExecutedMigration, GetPendingMigration, (req, res) => {
+  res.status(200).json({
+    message: 'all migrations',
+    migrations: res.migrations,
+  })
+})
 
 router.post('/up', (req, res, next) => {
-    process.nextTick(() => {
-        umzug.execute({
-            migrations: req.body.migrations,
-            method: 'up'
-        })
-        .then(mgtns => {
-            let migrations = [];
-            mgtns.forEach(m => migrations.push(m.file));
+  process.nextTick(() => {
+    umzug.execute({
+      migrations: req.body.migrations,
+      method: 'up',
+    })
+      .then((mgtns) => {
+        const migrations = []
+        mgtns.forEach((m) => migrations.push(m.file))
 
-            res.status(200).json({
-                message: `migrated`,
-                migrations: migrations
-            });
+        res.status(200).json({
+          message: 'migrated',
+          migrations,
         })
-        .catch(err => {
-            next(genError(`error migrating`, err.message));
-        });
-    });
-});
+      })
+      .catch((err) => {
+        next(genError('error migrating', err.message))
+      })
+  })
+})
 
 router.post('/down', (req, res, next) => {
-    process.nextTick(() => {
-        umzug.execute({
-            migrations: req.body.migrations,
-            method: 'down'
+  process.nextTick(() => {
+    umzug.execute({
+      migrations: req.body.migrations,
+      method: 'down',
+    })
+      .then((mgtns) => {
+        const migrations = []
+        mgtns.forEach((m) => migrations.push(m.file))
+
+        res.status(200).json({
+          message: 'undo migrated',
+          migrations,
         })
-        .then(mgtns => {
-            let migrations = [];
-            mgtns.forEach(m => migrations.push(m.file));
+      })
+      .catch((err) => {
+        next(genError('error undo migration', err.message))
+      })
+  })
+})
 
-            res.status(200).json({
-                message: `undo migrated`,
-                migrations: migrations
-            });
-        })
-        .catch(err => {
-            next(genError(`error undo migration`, err.message));
-        });
-    });
-});
-
-function GetExecutedMigration (req, res, next) {
-    process.nextTick(() => {
-        umzug.executed()
-        .then(mgtd => {
-            let migrations = res.migrations ? [...res.migrations] : [];
-            
-            mgtd.forEach(m => migrations.push({ name: m.file, status: 'migrated' }));
-            res.migrations = migrations;
-
-            next();
-        })
-        .catch(err => {
-            next(genError(`Error get executed migrations`, err.message));
-        });
-    });
-}
-
-function GetPendingMigration (req, res, next) {
-    process.nextTick(() => {
-        umzug.pending()
-        .then(pndg => {
-            let migrations = res.migrations ? [...res.migrations] : [];
-
-            pndg.forEach(m => migrations.push({ name: m.file, status: 'pending' }));
-            res.migrations = migrations;
-
-            next();
-        })
-        .catch(err => {
-            next(genError(`Error get pending migrations`, err.message));
-        });
-    });
-}
-
-export default router;
+export default router

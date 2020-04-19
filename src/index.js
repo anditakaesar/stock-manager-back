@@ -1,8 +1,8 @@
-import 'dotenv/config';
-import { http } from './app';
-import { env } from './env';
-import logger from './logger';
+import 'dotenv/config'
+import application from './app'
+import { env } from './env'
+import logger from './logger'
 
-http.listen(env.PORT, () => {
-    logger.info(`App listen at port ${env.PORT}`);
-});
+application.app.listen(env.PORT, () => {
+  logger.info(`App listen at port ${env.PORT}`)
+})

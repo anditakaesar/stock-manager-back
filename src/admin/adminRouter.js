@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router } from 'express'
 
-const router = Router();
+const router = Router()
 
-router.use('/migration', require('./migrationRouter').default);
+router.use('/migration', require('./migrationRouter').default)
 
-export default router;
+export default router
