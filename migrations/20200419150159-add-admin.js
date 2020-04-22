@@ -10,8 +10,8 @@ module.exports = {
       username: 'admin',
       email: 'admin@email.com',
       password: password,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
+      createdAt: new Date(),
+      updatedAt: new Date()
     }])
   },
 
