@@ -4,6 +4,8 @@ import compression from 'compression'
 import cors from 'cors'
 import { json, urlencoded } from 'body-parser'
 import logger from './logger'
+import passport from './auth/passport'
+import { env } from './env'
 
 const app = express()
 
@@ -13,6 +15,10 @@ app.use(json())
 app.use(urlencoded({ extended: true }))
 app.use(cors())
 
+// initialize passport
+app.use(passport.initialize())
+app.use(passport.session())
+
 // global middleware
 app.use((req, res, next) => {
   next()
@@ -20,11 +26,12 @@ app.use((req, res, next) => {
 
 // router
 app.use('/admin', require('./admin/adminRouter').default)
+app.use('/auth', require('./auth/authRouter').default)
 
 // end point for error handling
 app.use((err, req, res, next) => {
   if (err) {
-    if (!err.status) err.status = 500
+    if (!err.status) err.status = env.HTTP_STATUS.SERVER_ERROR
 
     logger.error(err.message, {
       request: `${req.method} ${req.originalUrl}`,
@@ -34,8 +41,9 @@ app.use((err, req, res, next) => {
     res.status(err.status).json({
       message: err.message,
     })
+  } else {
+    next()
   }
-  next()
 })
 
 app.use((req, res) => {
