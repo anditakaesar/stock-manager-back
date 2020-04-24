@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start:dev": "npx nodemon --exec ./node_modules/.bin/babel-node ./src/index.js",
-    "gen:keys": "openssl genpkey -algorithm RSA -out private.key -pkeyopt rsa_keygen_bits:1024 && openssl rsa -pubout -in private.key -out public.key",
+    "gen:keys": "openssl genpkey -algorithm RSA -out private.key -pkeyopt rsa_keygen_bits:4096 && openssl rsa -pubout -in private.key -out public.key",
     "build": "npx babel src -d build"
   },
   "devDependencies": {

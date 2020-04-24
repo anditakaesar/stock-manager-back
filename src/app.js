@@ -4,7 +4,7 @@ import compression from 'compression'
 import cors from 'cors'
 import { json, urlencoded } from 'body-parser'
 import logger from './logger'
-import passport from './auth/passport'
+import passport, { strategy } from './auth/passport'
 import { env } from './env'
 
 const app = express()
@@ -25,8 +25,9 @@ app.use((req, res, next) => {
 })
 
 // router
-app.use('/admin', require('./admin/adminRouter').default)
-app.use('/auth', require('./auth/authRouter').default)
+app.use('/admin', require('./admin/admin-router').default)
+app.use('/auth', require('./auth/auth-router').default)
+app.use('/stock', passport.authenticate(strategy.JWT_LOGIN), require('./stock/stock-router').default)
 
 // end point for error handling
 app.use((err, req, res, next) => {
