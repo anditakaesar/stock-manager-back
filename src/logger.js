@@ -22,43 +22,52 @@ const myFormat = printf((info) => {
 })
 
 const dateStr = moment().format('YYYY-MM-DD')
+const fileConfig = {
+  filename: path.join(__dirname, `../logs/${dateStr}.log`),
+  level: 'debug',
+  format: combine(
+    label({ label: 'DEVELOP' }),
+    timestamp(),
+    myFormat,
+  ),
+}
+
+const consoleConfig = {
+  level: 'debug',
+  format: combine(
+    label({ label: 'DEVELOP' }),
+    timestamp(),
+    myFormat,
+  ),
+}
+
+// const logglyConfig = {
+//   token: env.LOGGLY_TOKEN,
+//   subdomain: env.LOGGLY_SUBDOMAIN,
+//   tags: ['production', env.LOGGLY_TAG],
+//   json: true
+// }
 
 function InitLogger() {
   if (process.env.NODE_ENV === 'development') {
     return new winston.createLogger({
       transports: [
-        new winston.transports.File({
-          filename: path.join(__dirname, `../logs/${dateStr}.log`),
-          level: 'debug',
-          format: combine(
-            label({ label: 'DEVELOP' }),
-            timestamp(),
-            myFormat,
-          ),
-        }),
-        new winston.transports.Console({
-          level: 'debug',
-          format: combine(
-            label({ label: 'DEVELOP' }),
-            timestamp(),
-            myFormat,
-          ),
-        }),
+        new winston.transports.File(fileConfig),
+        new winston.transports.Console(consoleConfig),
       ],
     }) // end return
   }
-// } else {
-//     logger = new winston.createLogger({
-//         transports: [
-//             new Loggly({
-//                 token: env.LOGGLY_TOKEN,
-//                 subdomain: env.LOGGLY_SUBDOMAIN,
-//                 tags: ['production', env.LOGGLY_TAG],
-//                 json: true
-//             })
-//         ]
-//     });
-// }
+
+  return new winston.createLogger({
+    transports: [
+      new winston.transports.File(fileConfig),
+    ],
+  })
+  // return new winston.createLogger({
+  //   transports: [
+  //     new Loggly(logglyConfig),
+  //   ],
+  // })
 }
 
 const logger = InitLogger()
