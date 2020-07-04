@@ -21,13 +21,21 @@ const { Stock } = db
 
 function getStockByUserId(req, res, next) {
   process.nextTick(() => {
-    Stock.findAll({
+    const { limit, page } = res.meta
+    const offset = limit * (page - 1)
+    Stock.findAndCountAll({
       where: {
         userid: req.user.id,
       },
+      offset,
+      limit,
     })
-      .then((stocks) => {
-        res.stocks = stocks
+      .then((result) => {
+        res.stocks = result.rows
+        res.meta.count = result.count
+        res.meta.maxpage = Math.ceil(result.count / limit)
+        res.meta.next = page < res.meta.maxpage
+        res.meta.prev = page > 1
         next()
       })
       .catch((err) => {
@@ -66,8 +74,39 @@ function getStock(req, res, next) {
   })
 }
 
+function isQueryValid(req) {
+  if (req.query.limit !== undefined && req.query.page !== undefined) {
+    const { limit, page } = req.query
+    const numPatt = /[\d+]{1,}/
+    if (limit.match(numPatt) && page.match(numPatt)) {
+      if (limit > 0 && page > 0) {
+        return true
+      }
+
+      return false
+    }
+
+    return false
+  }
+
+  return false
+}
+
+function checkPagingRoute(req, res, next) {
+  if (isQueryValid(req)) {
+    res.meta.limit = parseInt(req.query.limit, 10)
+    res.meta.page = parseInt(req.query.page, 10)
+    next()
+  } else {
+    res.redirect(`${req.baseUrl}?limit=10&page=1`)
+  }
+}
+
 router.use((req, res, next) => {
   res.stocks = []
+  res.meta = {}
+  res.meta.next = false
+  res.meta.prev = false
   next()
 })
 
@@ -78,7 +117,7 @@ router.post('/', checkBodyRequirement, (req, res, next) => {
       stockname: req.body.stockname,
       stockcode: req.body.stockcode,
       qty: req.body.qty ? req.body.qty : 0,
-      value: req.body.value ? req.body.value : 0,
+      price: req.body.price ? req.body.price : 0,
       userid: req.user.id,
       createdAt: now,
       updatedAt: now,
@@ -97,11 +136,12 @@ router.post('/', checkBodyRequirement, (req, res, next) => {
   })
 })
 
-router.get('/', getStockByUserId, (req, res) => {
+router.get('/', checkPagingRoute, getStockByUserId, (req, res) => {
   res.status(env.HTTP_STATUS.OK)
     .json({
       message: MSG.RETRIEVE_SUCCESS,
       stocks: res.stocks,
+      meta: res.meta,
     })
 })
 
@@ -119,7 +159,7 @@ router.put('/:id', getStock, (req, res, next) => {
       stockname: req.body.stockname ? req.body.stockname : res.stock.stockname,
       stockcode: req.body.stockcode ? req.body.stockcode : res.stock.stockcode,
       qty: req.body.qty ? req.body.qty : res.stock.qty,
-      value: req.body.value ? req.body.value : res.stock.value,
+      price: req.body.price ? req.body.price : res.stock.price,
       userid: res.stock.userid,
       createdAt: res.stock.createdAt,
       updatedAt: new Date(),
